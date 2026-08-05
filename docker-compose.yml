@@ -1,0 +1,78 @@
+version: "3.7"
+networks:
+  dspacenet:
+    ipam:
+      config:
+        - subnet: 172.7.0.0/16
+
+services:
+  # DSpace REST API (backend) - se construye con el Dockerfile del repo DSpace-9x
+  dspace:
+    container_name: dspace
+    image: "${DOCKER_OWNER:-mi-usuario}/dspace:${DSPACE_VER:-latest}"
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        JDK_VERSION: "17"
+    depends_on:
+      - dspacedb
+      - dspacesolr
+    networks:
+      dspacenet:
+        ipv4_address: 172.7.0.100
+    ports:
+      - "8080:8080"
+      - "8000:8000"
+    environment:
+      # Sintaxis especial de DSpace: "__P__" = "." (ej. dspace__P__dir = dspace.dir)
+      dspace__P__dir: /dspace
+      dspace__P__server__P__url: http://localhost:8080/server
+      dspace__P__ui__P__url: http://localhost:4000
+      dspace__P__name: "DSpace desplegado con Docker"
+      db__P__url: "jdbc:postgresql://dspacedb:5432/dspace"
+      db__P__username: dspace
+      db__P__password: dspace
+      solr__P__server: http://dspacesolr:8983/solr
+      JAVA_OPTS: "-Xmx2000m"
+    volumes:
+      - assetstore:/dspace/assetstore
+
+  # Base de datos PostgreSQL
+  dspacedb:
+    container_name: dspacedb
+    image: docker.io/dspace/dspace-postgres-pgcrypto:latest
+    networks:
+      dspacenet:
+        ipv4_address: 172.7.0.110
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: dspace
+      POSTGRES_USER: dspace
+      POSTGRES_PASSWORD: dspace
+    volumes:
+      - pgdata:/pgdata
+
+  # Servidor de índices Apache Solr
+  dspacesolr:
+    container_name: dspacesolr
+    image: docker.io/dspace/dspace-solr:latest
+    networks:
+      dspacenet:
+        ipv4_address: 172.7.0.120
+    ports:
+      - "8983:8983"
+    volumes:
+      - solr_authority:/var/solr/data/authority
+      - solr_oai:/var/solr/data/oai
+      - solr_search:/var/solr/data/search
+      - solr_statistics:/var/solr/data/statistics
+
+volumes:
+  assetstore:
+  pgdata:
+  solr_authority:
+  solr_oai:
+  solr_search:
+  solr_statistics:
