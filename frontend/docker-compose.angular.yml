@@ -1,0 +1,31 @@
+version: "3.7"
+
+networks:
+  dspacenet:
+    external: true
+    name: ${COMPOSE_PROJECT_NAME:-dspace}_dspacenet
+
+services:
+  dspace-angular:
+    container_name: dspace-angular
+    image: "${DOCKER_OWNER:-mi-usuario}/dspace-angular:${DSPACE_VER:-latest}"
+    build:
+      context: ./dspace-angular
+      dockerfile: Dockerfile.dist
+    depends_on:
+      - dspace
+    networks:
+      - dspacenet
+    ports:
+      - "4000:4000"
+    environment:
+      DSPACE_REST_SSL: "false"
+      DSPACE_REST_HOST: dspace
+      DSPACE_REST_PORT: 8080
+      DSPACE_REST_NAMESPACE: /server
+      DSPACE_UI_SSL: "false"
+      DSPACE_UI_HOST: 0.0.0.0
+      DSPACE_UI_PORT: 4000
+      DSPACE_UI_NAMESPACE: /
+      DSPACE_NAMESPACE: /
+      NODE_ENV: production
